@@ -2,13 +2,26 @@ const bcrypt = require("bcrypt");
 
 const user_model = require("../models/users");
 
-exports.register_user = async (username, password) => {
-  let existingUser = await user_model.get_user_by_username(username);
-  if (!existingUser) {
-    console.log("here");
-    let hashedPassword = await bcrypt.hash(password, 8);
-    await user_model.create_user(username, hashedPassword);
-    return { username: username, password: hashedPassword };
+exports.hash_password = async (password) => {
+  return await bcrypt.hash(password, 8);
+};
+
+exports.verify_user = async (username, password) => {
+  let user = await user_model.get_user_by_username(username);
+  if (!user) {
+    return { error: "Invalid username" };
   }
-  return "this username is taken";
+
+  let authenticated = await bcrypt
+    .compare(password, user.password)
+    .catch((err) => {
+      return { error: err };
+    });
+  if (authenticated) {
+    return { message: "Login successful" };
+  } else if (authenticated.error) {
+    return { error: authenticated.error };
+  } else {
+    return { error: "Incorrect password" };
+  }
 };

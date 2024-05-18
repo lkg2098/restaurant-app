@@ -1,7 +1,3 @@
-const { resolve } = require("path");
-const { exit } = require("process");
-
-const sqlite3 = require("sqlite3").verbose();
 const db = require("../db");
 
 exports.get_tables = () => {
@@ -19,9 +15,41 @@ exports.get_tables = () => {
 exports.create_user = async (username, password) => {
   return new Promise((resolve, reject) => {
     db.all(
-      `insert into user(username, password) values(?,?)`,
+      `insert into user(username, password) values(?,?) returning user_id`,
       [username, password],
-      (err) => {
+      (err, row) => {
+        if (err) {
+          console.log(`Got error ${err}`);
+          reject(err);
+        }
+        resolve(row[0].user_id);
+      }
+    );
+  });
+};
+
+exports.update_username = async (id, username) => {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `update user set username = ? where user_id = ?`,
+      [username, id],
+      (err, row) => {
+        if (err) {
+          console.log(`Got error ${err}`);
+          reject(err);
+        }
+        resolve();
+      }
+    );
+  });
+};
+
+exports.update_password = async (id, passwordHash) => {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `update user set password = ? where user_id = ?`,
+      [passwordHash, id],
+      (err, row) => {
         if (err) {
           console.log(`Got error ${err}`);
           reject(err);
@@ -41,6 +69,22 @@ exports.list_users = () => {
       }
       resolve(rows);
     });
+  });
+};
+
+exports.search_usernames = (queryTerm) => {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `select username from user where username like ?`,
+      `%${queryTerm}%`,
+      (err, rows) => {
+        if (err) {
+          console.log(`Got error ${err}`);
+          reject(err);
+        }
+        resolve(rows);
+      }
+    );
   });
 };
 
@@ -66,6 +110,18 @@ exports.get_user_by_username = (username) => {
       }
 
       resolve(row);
+    });
+  });
+};
+
+exports.delete_user = (id) => {
+  return new Promise((resolve, reject) => {
+    db.all(`delete from user where user_id = ?`, id, (err) => {
+      if (err) {
+        console.log(`Got error ${err}`);
+        reject(err);
+      }
+      resolve();
     });
   });
 };
