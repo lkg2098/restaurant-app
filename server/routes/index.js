@@ -6,9 +6,7 @@ const user_controller = require("../controllers/usersController");
 const auth = require("../controllers/auth");
 const { verifyToken, refreshToken } = require("../middleware/auth");
 
-router.get("/", (req, res) => {
-  res.send("<h1>Hello World!</h1>");
-});
+router.get("/", verifyToken, auth.user_is_logged_in);
 
 router.get("/signup", user_controller.user_register_page);
 

@@ -5,6 +5,9 @@ const jwt = require("jsonwebtoken");
 const user_model = require("../models/users");
 const user_controller = require("./usersController");
 
+exports.user_is_logged_in = (req, res, next) => {
+  res.status(200).json({ message: "Successfully logged in!" });
+};
 exports.generate_auth_tokens = (user_id, username) => {
   let accessToken = jwt.sign(
     { user_id: user_id, username: username },

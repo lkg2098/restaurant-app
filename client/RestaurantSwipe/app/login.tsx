@@ -21,6 +21,7 @@ import DividerText from "@/components/DividerText";
 import GradientButton from "@/components/GradientButton";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { ThemedTextInput } from "@/components/ThemedTextInput";
+import { PasswordInput } from "@/components/PasswordInput";
 
 export default function Login() {
   const router = useRouter();
@@ -86,65 +87,67 @@ export default function Login() {
     >
       <ScrollView
         keyboardDismissMode="interactive"
-        contentContainerStyle={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
+        contentContainerStyle={{ flex: 1 }}
       >
-        <ThemedText
-          interactive
-          style={{
-            fontFamily: "Playwrite",
-            fontSize: 45,
-            fontWeight: 500,
-            lineHeight: 70,
-          }}
+        <ImageBackground
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+          source={require("../assets/images/Crave background.png")}
+          resizeMode="cover"
         >
-          Tastebuds
-        </ThemedText>
-
-        <ThemedText interactive>{error}</ThemedText>
-        <ThemedTextInput
-          style={styles.textInput}
-          value={loginInfo.username}
-          placeholder="Username"
-          placeholderTextColor={useThemeColor({}, "subduedText")}
-          onChangeText={(value) => handleInput("username", value)}
-        />
-        <ThemedTextInput
-          style={styles.textInput}
-          value={loginInfo.password}
-          placeholder="Password"
-          secureTextEntry
-          placeholderTextColor={useThemeColor({}, "subduedText")}
-          onChangeText={(value) => handleInput("password", value)}
-        />
-
-        <GradientButton
-          handlePress={handleLogin}
-          buttonText="Login"
-          style={{ width: "75%", margin: 10 }}
-        />
-        <ThemedText interactive type="defaultSemiBold">
-          Forgot Password?
-        </ThemedText>
-        <DividerText text="or" subdued dividerLength={"30%"} />
-
-        <Pressable
-          onPress={() => {
-            slideOut();
-          }}
-        >
-          <ThemedText type="defaultBold" interactive>
-            Create an account
+          <ThemedText
+            interactive
+            style={{
+              fontFamily: "Playwrite",
+              fontSize: 45,
+              fontWeight: 500,
+              lineHeight: 70,
+            }}
+          >
+            Tastebuds
           </ThemedText>
-        </Pressable>
-        <Link href="(tabs)" asChild>
-          <Pressable style={{ margin: 20 }}>
-            <ThemedText style={styles.bypassButton}>Bypass</ThemedText>
+
+          <ThemedText interactive>{error}</ThemedText>
+          <ThemedTextInput
+            style={styles.textInput}
+            value={loginInfo.username}
+            placeholder="Username"
+            placeholderTextColor={useThemeColor({}, "subduedText")}
+            onChangeText={(value) => handleInput("username", value)}
+          />
+          <PasswordInput
+            style={styles.textInput}
+            value={loginInfo.password}
+            placeholder="Password"
+            secureTextEntry
+            placeholderTextColor={useThemeColor({}, "subduedText")}
+            onChangeText={(value) => handleInput("password", value)}
+          />
+
+          <GradientButton
+            handlePress={handleLogin}
+            buttonText="Login"
+            style={{ width: "75%", margin: 10 }}
+          />
+          <ThemedText interactive type="defaultSemiBold">
+            Forgot Password?
+          </ThemedText>
+          <DividerText text="or" subdued dividerLength={"30%"} />
+
+          <Pressable
+            onPress={() => {
+              slideOut();
+            }}
+          >
+            <ThemedText type="defaultBold" interactive>
+              Create an account
+            </ThemedText>
           </Pressable>
-        </Link>
+          <Link href="(tabs)" asChild>
+            <Pressable style={{ margin: 20 }}>
+              <ThemedText style={styles.bypassButton}>Bypass</ThemedText>
+            </Pressable>
+          </Link>
+        </ImageBackground>
       </ScrollView>
     </Animated.View>
   );

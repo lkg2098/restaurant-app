@@ -70,7 +70,11 @@ export function ThemedTextInput({
 }
 
 const styles = StyleSheet.create({
-  container: { width: "100%", alignItems: "center" },
+  container: {
+    width: "100%",
+    alignItems: "center",
+    backgroundColor: "transparent",
+  },
   textInput: {
     fontSize: 16,
     borderWidth: 1,

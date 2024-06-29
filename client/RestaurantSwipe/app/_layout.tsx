@@ -29,6 +29,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { ThemedText } from "@/components/ThemedText";
+import * as Linking from "expo-linking";
 // // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
@@ -41,6 +42,24 @@ export default function RootLayout() {
   });
 
   const { session } = useLocalSearchParams();
+
+  let url = Linking.useURL();
+  const handleUrl = (url: string) => {
+    const { hostname, path, queryParams } = Linking.parse(url);
+    if (path) {
+      router.navigate(path);
+    }
+    console.log(
+      `hostname: ${hostname}, path: ${path}, queryParams: ${queryParams}`
+    );
+  };
+  useEffect(() => {
+    if (url) {
+      handleUrl(url);
+    } else {
+      console.log("NO URL");
+    }
+  }, [url]);
 
   useEffect(() => {
     if (loaded) {
@@ -75,7 +94,12 @@ export default function RootLayout() {
             headerShown: false,
           }}
         />
-        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="index"
+          options={{
+            headerShown: false,
+          }}
+        />
         <Stack.Screen
           name="createSession"
           options={{ headerShown: false, animation: "slide_from_bottom" }}
