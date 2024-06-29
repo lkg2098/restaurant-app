@@ -8,6 +8,8 @@ const { Server } = require("socket.io");
 
 const indexRouter = require("./routes/index");
 const usersRouter = require("./routes/users");
+const sessionsRouter = require("./routes/sessions");
+const restaurantsRouter = require("./routes/restaurants");
 
 const app = express();
 
@@ -27,6 +29,8 @@ app.use(bodyParser.json());
 
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
+app.use("/sessions", sessionsRouter);
+app.use("/restaurants", restaurantsRouter);
 
 const port = process.env.PORT || 3000;
 
@@ -36,7 +40,34 @@ app.closeServer = () => {
 
 io.on("connection", (socket) => {
   console.log("user connected");
-  socket.on("disconnect", function () {
+  socket.on("joinSession", (sessionId) => {
+    socket.join(sessionId);
+    console.log(`in session ${sessionId}`);
+  });
+  socket.on("leaveSession", (sessionId) => {
+    socket.leave(sessionId);
+    console.log(`exited session ${sessionId}`);
+  });
+
+  socket.on("like", (session, restaurant) => {
+    console.log(restaurant);
+    if (restaurant.score != 1) {
+      socket.to(session).emit("newResData", restaurant, 1);
+    } else {
+      socket.to(session).emit("match", restaurant);
+    }
+  });
+
+  socket.on("dislike", (session, restaurant) => {
+    console.log(restaurant);
+    socket.to(session).emit("newResData", restaurant, 0);
+  });
+
+  socket.on("requestData", (session) => {
+    console.log(session);
+    io.to(session).emit("sendData", "someData");
+  });
+  socket.on("disconnect", () => {
     console.log("user disconnected");
   });
 });

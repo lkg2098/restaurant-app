@@ -12,11 +12,11 @@ exports.get_tables = () => {
   return data;
 };
 
-exports.create_user = async (username, password) => {
+exports.create_user = async (username, password, phone_number) => {
   return new Promise((resolve, reject) => {
     db.all(
-      `insert into user(username, password) values(?,?) returning user_id`,
-      [username, password],
+      `insert into user(username, password, phone_number) values(?,?,?) returning user_id`,
+      [username, password, phone_number],
       (err, row) => {
         if (err) {
           console.log(`Got error ${err}`);
@@ -72,11 +72,11 @@ exports.list_users = () => {
   });
 };
 
-exports.search_usernames = (queryTerm) => {
+exports.search_users = (queryTerm) => {
   return new Promise((resolve, reject) => {
     db.all(
-      `select username from user where username like ?`,
-      `%${queryTerm}%`,
+      `select username, name from user where username like ? or name like ?`,
+      [`%${queryTerm}%`, `%${queryTerm}%`],
       (err, rows) => {
         if (err) {
           console.log(`Got error ${err}`);
@@ -101,6 +101,22 @@ exports.get_user_by_id = (id) => {
   });
 };
 
+exports.get_many_ids_by_usernames = (usernames) => {
+  const queries = usernames.join("' , '");
+  return new Promise((resolve, reject) => {
+    db.all(
+      `select user_id from user where username in ('${queries}')`,
+      [],
+      (err, rows) => {
+        if (err) {
+          console.log(err);
+        }
+        resolve(rows);
+      }
+    );
+  });
+};
+
 exports.get_user_by_username = (username) => {
   return new Promise((resolve, reject) => {
     db.get(`select * from user where username = ?`, username, (err, row) => {
@@ -111,6 +127,22 @@ exports.get_user_by_username = (username) => {
 
       resolve(row);
     });
+  });
+};
+
+exports.check_existing_phone = (phone_number) => {
+  return new Promise((resolve, reject) => {
+    db.get(
+      `select user_id from user where phone_number = ?`,
+      phone_number,
+      (err, row) => {
+        if (err) {
+          console.log(`Got error ${err}`);
+          reject(err);
+        }
+        resolve(row);
+      }
+    );
   });
 };
 

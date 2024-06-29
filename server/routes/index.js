@@ -12,15 +12,11 @@ router.get("/", (req, res) => {
 
 router.get("/signup", user_controller.user_register_page);
 
-router.post("/signup", user_controller.user_register);
+router.post("/signup", auth.register);
 
 router.get("/login", user_controller.user_login_page);
 
-router.post("/login", user_controller.user_login);
-
-router.post("/auth", auth.register);
-
-router.post("/verify", verifyToken);
+router.post("/login", auth.login);
 
 router.post("/refresh", refreshToken);
 
