@@ -12,11 +12,13 @@ exports.verify_session_member = asyncHandler(async (req, res, next) => {
       req.decoded = { ...req.decoded, role: member.role };
       next();
     } else {
+      console.log("Not authorized, user not in session");
       return res
         .status(401)
         .json({ error: "Not authorized, user not in session" });
     }
   } else {
+    console.log("Not authorized");
     return res.status(401).json({ error: "Not authorized" });
   }
 });
@@ -33,7 +35,6 @@ exports.parse_session_body = (req) => {
     radius: req.body.radius,
     budget_min: req.body.budget_min,
     budget_max: req.body.budget_max,
-    rating: req.body.rating,
     restaurant: req.body.restaurant,
     liked: req.body.liked,
   };

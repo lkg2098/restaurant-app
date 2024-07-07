@@ -3,10 +3,14 @@ const router = express.Router();
 
 const { verifyToken } = require("../middleware/auth");
 const { verify_session_member } = require("../middleware/sessionsMiddleware");
+const {
+  prevent_duplicate_preferences,
+} = require("../middleware/preferencesMiddleware");
 
 const session_controller = require("../controllers/sessionsController");
 const member_controller = require("../controllers/membersController");
 const restaurant_controller = require("../controllers/restaurantsController");
+const preference_controller = require("../controllers/preferencesController");
 
 // list sessions
 router.get("/", verifyToken, session_controller.sessions_list_by_user_id);
@@ -55,6 +59,23 @@ router.post(
   verifyToken,
   verify_session_member,
   member_controller.session_members_add
+);
+
+// get member preferences
+router.get(
+  "/:sessionId/preferences",
+  verifyToken,
+  verify_session_member,
+  preference_controller.get_preferences_for_session
+);
+
+// add or update preferences
+router.post(
+  "/:sessionId/preferences",
+  verifyToken,
+  verify_session_member,
+  prevent_duplicate_preferences,
+  preference_controller.update_preferences
 );
 
 router.delete(

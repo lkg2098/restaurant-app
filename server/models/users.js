@@ -15,7 +15,7 @@ exports.get_tables = () => {
 exports.create_user = async (username, password, phone_number) => {
   return new Promise((resolve, reject) => {
     db.all(
-      `insert into user(username, password, phone_number) values(?,?,?) returning user_id`,
+      `insert into user(username, password, phone_number) values(?,?,?) returning *`,
       [username, password, phone_number],
       (err, row) => {
         if (err) {
@@ -60,6 +60,66 @@ exports.update_password = async (id, passwordHash) => {
   });
 };
 
+exports.update_name = async (id, name) => {
+  return new Promise((resolve, reject) => {
+    db.run(`update user set name = ? where user_id = ?`, [name, id], (err) => {
+      if (err) {
+        console.log(err);
+        reject(err);
+      }
+      resolve();
+    });
+  });
+};
+
+exports.update_phone_number = async (id, phone) => {
+  return new Promise((resolve, reject) => {
+    db.run(
+      `update user set phone_number = ? where user_id = ?`,
+      [phone, id],
+      (err) => {
+        if (err) {
+          console.log(err);
+          reject(err);
+        }
+        resolve();
+      }
+    );
+  });
+};
+
+exports.update_profile_image = async (id, url) => {
+  return new Promise((resolve, reject) => {
+    db.run(
+      `update user set profile_image = ? where user_id = ?`,
+      [url, id],
+      (err) => {
+        if (err) {
+          console.log(err);
+          reject(err);
+        }
+        resolve();
+      }
+    );
+  });
+};
+
+exports.update_push_token = async (id, token) => {
+  return new Promise((resolve, reject) => {
+    db.run(
+      `update user set push_token = ? where user_id = ?`,
+      [token, id],
+      (err) => {
+        if (err) {
+          console.log(err);
+          reject(err);
+        }
+        resolve();
+      }
+    );
+  });
+};
+
 exports.list_users = () => {
   return new Promise((resolve, reject) => {
     db.all(`select * from user`, [], (err, rows) => {
@@ -72,11 +132,11 @@ exports.list_users = () => {
   });
 };
 
-exports.search_users = (queryTerm) => {
+exports.search_users = (queryTerm, searcher) => {
   return new Promise((resolve, reject) => {
     db.all(
-      `select username, name from user where username like ? or name like ?`,
-      [`%${queryTerm}%`, `%${queryTerm}%`],
+      `select username, name from user where (username like ? or name like ?) and username != ?`,
+      [`%${queryTerm}%`, `%${queryTerm}%`, searcher],
       (err, rows) => {
         if (err) {
           console.log(`Got error ${err}`);

@@ -35,13 +35,14 @@ exports.register = asyncHandler(async (req, res, next) => {
   } else if (phoneNumberExists) {
     res.status(401).json({ error: "This phone number is taken" });
   } else {
+    let passwordHash = await bcrypt.hash(password, 8);
     let userId = await user_model
-      .create_user(username, password, phoneNumber)
+      .create_user(username, passwordHash, phoneNumber)
       .catch((err) => res.status(500).json({ error: err }));
     let accessTokens = this.generate_auth_tokens(userId, username);
     res
       .status(200)
-      .json({ ...accessTokens, message: "Registered successfully" });
+      .json({ ...accessTokens, message: "Registered successfully", userId });
   }
 });
 

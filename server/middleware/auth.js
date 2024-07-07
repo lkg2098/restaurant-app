@@ -25,7 +25,7 @@ exports.verifyToken = asyncHandler(async (req, res, next) => {
 
 exports.refreshToken = asyncHandler(async (req, res, next) => {
   const refreshToken = req.headers.authorization;
-  console.log("refreshing token...");
+
   if (refreshToken) {
     let tokenArray = refreshToken.split(" ");
 

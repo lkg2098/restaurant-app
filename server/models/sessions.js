@@ -104,13 +104,14 @@ exports.session_member_count = async (session_id) => {
 
 exports.get_past_sessions_by_user_id = async (id) => {
   let now = new Date().toISOString();
+  console.log(now);
   return new Promise((resolve, reject) => {
     db.all(
       `select *
       from session 
       join session_member 
       on session.session_id = session_member.session_id 
-      where session_member.user_id = ? and datetime(scheduled_at) < datetime(?)
+      where session_member.user_id = ? and date(scheduled_at) < date(?)
       order by scheduled_at
       `,
       [id, now],
@@ -132,7 +133,7 @@ exports.get_future_sessions_by_user_id = async (id) => {
       from session 
       join session_member 
       on session.session_id = session_member.session_id 
-      where session_member.user_id = ? and datetime(scheduled_at) > datetime(?)
+      where session_member.user_id = ? and date(scheduled_at) >= date(?)
       order by scheduled_at
       `,
       [id, now],
@@ -156,8 +157,7 @@ exports.session_create = async (
   location_long,
   radius,
   budget_min,
-  budget_max,
-  rating
+  budget_max
 ) => {
   let now = new Date();
   return new Promise((resolve, reject) => {
@@ -172,8 +172,7 @@ exports.session_create = async (
         location_long,
         radius,
         budget_min,
-        budget_max,
-        rating) values (?,?,?,?,?,?,?,?,?,?,?) returning session_id`,
+        budget_max) values (?,?,?,?,?,?,?,?,?,?) returning session_id`,
       [
         session_name,
         session_photo,
@@ -185,7 +184,6 @@ exports.session_create = async (
         radius,
         budget_min,
         budget_max,
-        rating,
       ],
       (err, result) => {
         if (err) {
@@ -210,8 +208,7 @@ exports.session_update_session = async (sessionId, sessionData) => {
       location_long = ?,
       radius = ?,
       budget_min = ?,
-      budget_max = ?,
-      rating = ? where session_id = ? returning *`,
+      budget_max = ? where session_id = ? returning *`,
       [
         sessionData.session_name,
         sessionData.session_photo,
@@ -222,7 +219,6 @@ exports.session_update_session = async (sessionId, sessionData) => {
         sessionData.radius,
         sessionData.budget_min,
         sessionData.budget_max,
-        sessionData.rating,
         sessionId,
       ],
       (err, row) => {

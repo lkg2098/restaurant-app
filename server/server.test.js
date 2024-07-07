@@ -15,10 +15,9 @@ const authTokens = { john: "a", john2: "b", johnRefresh: "r" };
 
 describe("test index endpoints", () => {
   it("test signup", async () => {
-    const password = await bcrypt.hash("maybe45", 8);
     const res = await request(app).post("/signup").send({
       username: "john",
-      password: password,
+      password: "maybe45",
       phoneNumber: "19123984506",
     });
     expect(res.status).toBe(200);
@@ -30,20 +29,18 @@ describe("test index endpoints", () => {
     expect(bcrypt.compare("maybe45", newUser.body.user.password)).toBeTruthy();
   });
   it("test signup with existing username", async () => {
-    const password = await bcrypt.hash("12345", 8);
     const res = await request(app).post("/signup").send({
       username: "john",
-      password: password,
+      password: "12345",
       phoneNumber: "19123984508",
     });
     expect(res.status).toBe(401);
     expect(res.body.error).toBe("This username is taken");
   });
   it("test signup with existing phone number", async () => {
-    const password = await bcrypt.hash("12345", 8);
     const res = await request(app).post("/signup").send({
       username: "milly",
-      password: password,
+      password: "12345",
       phoneNumber: "19123984506",
     });
     expect(res.status).toBe(401);
@@ -141,6 +138,54 @@ describe("test user endpoints", () => {
     expect(res.body.user.username).toBe("bob96");
     expect(bcrypt.compare("bf123", res.body.user.password)).toBeTruthy();
   });
+  it("test update name", async () => {
+    const res = await request(app)
+      .put("/users/account")
+      .send({ name: "John" })
+      .set("Authorization", authTokens.john);
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Successfully updated");
+    const user = await request(app)
+      .get("/users/account")
+      .set("Authorization", authTokens.john);
+    expect(user.body.user.name).toBe("John");
+  });
+  it("test update phone number", async () => {
+    const res = await request(app)
+      .put("/users/account")
+      .send({ phone_number: "19234499432" })
+      .set("Authorization", authTokens.john);
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Successfully updated");
+    const user = await request(app)
+      .get("/users/account")
+      .set("Authorization", authTokens.john);
+    expect(user.body.user.phone_number).toBe("19234499432");
+  });
+  it("test update profile image", async () => {
+    const res = await request(app)
+      .put("/users/account")
+      .send({ profile_image: "http://abc" })
+      .set("Authorization", authTokens.john);
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Successfully updated");
+    const user = await request(app)
+      .get("/users/account")
+      .set("Authorization", authTokens.john);
+    expect(user.body.user.profile_image).toBe("http://abc");
+  });
+  it("test update push token", async () => {
+    const res = await request(app)
+      .put("/users/account")
+      .send({ push_token: "drtHDw5wcyD" })
+      .set("Authorization", authTokens.john);
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Successfully updated");
+    const user = await request(app)
+      .get("/users/account")
+      .set("Authorization", authTokens.john);
+    expect(user.body.user.push_token).toBe("drtHDw5wcyD");
+  });
   it("test query usernames - many matching usernames", async () => {
     const res = await request(app)
       .post("/users/search")
@@ -149,7 +194,7 @@ describe("test user endpoints", () => {
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.users)).toBeTruthy();
-    expect(res.body.users.length).toBe(5);
+    expect(res.body.users.length).toBe(4);
   });
   it("test query usernames - no auth token", async () => {
     const res = await request(app)
@@ -304,7 +349,6 @@ describe("test session endpoints", () => {
         radius: 20,
         budget_min: 10,
         budget_max: 30,
-        rating: 3.5,
       });
     expect(res.status).toBe(200);
     expect(res.body.sessionId).toBe(2);
@@ -347,7 +391,6 @@ describe("test session endpoints", () => {
     expect(res.body.session.radius).toBe(20);
     expect(res.body.session.budget_min).toBe(10);
     expect(res.body.session.budget_max).toBe(30);
-    expect(res.body.session.rating).toBe(3.5);
     expect(res.body.session.created_at).toBeTruthy();
   });
   it("test add members - add one", async () => {
@@ -583,13 +626,97 @@ describe("test session restaurants", () => {
   });
 });
 
+// PREFERENCES ENDPOINTS ============================================>
+describe("test preferences endpoints", () => {
+  it("test get preferences", async () => {
+    const res = await request(app)
+      .get("/sessions/1/preferences")
+      .set("Authorization", authTokens.Test1);
+    expect(res.status).toBe(200);
+    expect(res.body.preferences).toBeTruthy();
+    expect(res.body.preferences.length).toBe(4);
+  });
+  it("test get preferences - wanted", async () => {
+    const res = await request(app)
+      .get("/sessions/1/preferences")
+      .query({ wanted: 1 })
+      .set("Authorization", authTokens.Test1);
+    expect(res.status).toBe(200);
+    expect(res.body.preferences).toBeTruthy();
+    expect(res.body.preferences.length).toBe(2);
+  });
+  it("test get preferences - wanted", async () => {
+    const res = await request(app)
+      .get("/sessions/1/preferences")
+      .query({ wanted: 0 })
+      .set("Authorization", authTokens.Test1);
+    expect(res.status).toBe(200);
+    expect(res.body.preferences).toBeTruthy();
+    expect(res.body.preferences.length).toBe(2);
+  });
+  it("test update preferences - no deletion", async () => {
+    const res = await request(app)
+      .post("/sessions/1/preferences")
+      .set("Authorization", authTokens.Test1)
+      .send({
+        toAdd: ["thai_restaurant"],
+        toDelete: [],
+      })
+      .query({ wanted: 1 });
+    console.log(res.body);
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Successfully updated preferences");
+    let list = await request(app)
+      .get("/sessions/1/preferences")
+      .query({ wanted: 1 })
+      .set("Authorization", authTokens.Test1);
+    expect(list.body.preferences.length).toBe(3);
+  });
+  it("test update preferences", async () => {
+    const res = await request(app)
+      .post("/sessions/1/preferences")
+      .set("Authorization", authTokens.Test1)
+      .send({
+        toAdd: ["pizza_restaurant"],
+        toDelete: ["thai_restaurant"],
+      })
+      .query({ wanted: 1 });
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Successfully updated preferences");
+    let list = await request(app)
+      .get("/sessions/1/preferences")
+      .query({ wanted: 1 })
+      .set("Authorization", authTokens.Test1);
+    console.log(list.body);
+    expect(list.body.preferences.length).toBe(3);
+  });
+  it("test update preferences - preexisting tag", async () => {
+    const res = await request(app)
+      .post("/sessions/1/preferences")
+      .set("Authorization", authTokens.Test1)
+      .send({
+        toAdd: ["pizza_restaurant"],
+        toDelete: [],
+      })
+      .query({ wanted: 1 });
+    console.log(res.body);
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Already up to date");
+    let list = await request(app)
+      .get("/sessions/1/preferences")
+      .query({ wanted: 1 })
+      .set("Authorization", authTokens.Test1);
+    expect(list.body.preferences.length).toBe(3);
+  });
+});
+
 // GOOGLE ENDPOINTS =================================================>
 describe("test google endpoints", () => {
   it("test sample data", async () => {
     const res = await request(app)
       .get("/restaurants/test")
       .set("Authorization", authTokens.Test1);
-    console.log(res.body.results);
+    // console.log(res.body.results);
     expect(res.status).toBe(200);
   });
   // it("test nearby search", async () => {

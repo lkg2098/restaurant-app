@@ -12,8 +12,17 @@ exports.user_register_page = asyncHandler(async (req, res, next) => {
 
 exports.verifyCredentials = async (username, phone) => {
   try {
-    let existingUsername = await user_model.get_user_by_username(username);
-    let existingPhoneNumber = await user_model.check_existing_phone(phone);
+    let existingUsername = false;
+    let existingPhoneNumber = false;
+
+    if (username) {
+      existingUsername = await user_model.get_user_by_username(username);
+    }
+
+    if (phone) {
+      existingPhoneNumber = await user_model.check_existing_phone(phone);
+    }
+
     return {
       usernameExists: Boolean(existingUsername),
       phoneNumberExists: Boolean(existingPhoneNumber),
@@ -23,18 +32,18 @@ exports.verifyCredentials = async (username, phone) => {
     return err;
   }
 };
+
 exports.user_verify_unique = asyncHandler(async (req, res, next) => {
-  let { username, phoneNumber, password } = req.body.loginInfo;
-  console.log(req.body.loginInfo);
+  let { username, phoneNumber } = req.body;
+
   let { usernameExists, phoneNumberExists } = await this.verifyCredentials(
     username,
     phoneNumber
   );
   if (!usernameExists && !phoneNumberExists) {
-    let passwordHash = await bcrypt.hash(password, 8);
     res.status(200).json({
       message: "Verified username and phone number!",
-      loginInfo: { username, phoneNumber, password: passwordHash },
+      loginInfo: { username, phoneNumber },
     });
   } else {
     res.status(401).json({
@@ -102,6 +111,22 @@ exports.user_update_password = asyncHandler(async (req, res, next) => {
   }
 });
 
+exports.user_update = asyncHandler(async (req, res, next) => {
+  const { name, phone_number, profile_image, push_token } = req.body;
+
+  if (name) {
+    await user_model.update_name(req.decoded.user_id, name);
+  } else if (phone_number) {
+    await user_model.update_phone_number(req.decoded.user_id, phone_number);
+  } else if (profile_image) {
+    await user_model.update_profile_image(req.decoded.user_id, profile_image);
+  } else if (push_token) {
+    await user_model.update_push_token(req.decoded.user_id, push_token);
+  }
+
+  res.status(200).json({ message: "Successfully updated" });
+});
+
 // get user by id (for account info page)
 exports.user_get_by_id = asyncHandler(async (req, res, next) => {
   if (req.decoded && req.decoded.user_id) {
@@ -143,9 +168,11 @@ exports.users_list = asyncHandler(async (req, res, next) => {
 // query users by username autocomplete
 exports.users_query_username = asyncHandler(async (req, res, next) => {
   let queryTerm = req.body.queryTerm;
-  let users = await user_model.search_users(queryTerm).catch((err) => {
-    res.status(401).json({ message: "Something went wrong" });
-  });
+  let users = await user_model
+    .search_users(queryTerm, req.decoded.username)
+    .catch((err) => {
+      res.status(401).json({ message: "Something went wrong" });
+    });
   res.status(200).json({ users: users });
 });
 

@@ -49,6 +49,7 @@ exports.session_search = asyncHandler(async (req, res, next) => {
 
 exports.session_create = asyncHandler(async (req, res, next) => {
   if (req.decoded) {
+    console.log(req.body);
     const adminId = req.decoded.user_id;
     console.log(adminId);
     // verify that admin user exists
@@ -70,7 +71,6 @@ exports.session_create = asyncHandler(async (req, res, next) => {
         radius,
         budget_min,
         budget_max,
-        rating,
       } = parse_session_body(req);
       console.log(req.body);
       //create session
@@ -84,8 +84,7 @@ exports.session_create = asyncHandler(async (req, res, next) => {
         location_long,
         radius,
         budget_min,
-        budget_max,
-        rating
+        budget_max
       );
       console.log(sessionId);
       // add admin user
@@ -112,7 +111,6 @@ exports.session_get_by_id = asyncHandler(async (req, res, next) => {
     .session_get_by_id(req.params.sessionId)
     .catch((err) => {
       console.log(err);
-      res.status(500).json({ error: err });
     });
   res.status(200).json({ session: session, userRole: req.decoded.role });
 });
