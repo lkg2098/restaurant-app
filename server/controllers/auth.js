@@ -72,3 +72,8 @@ exports.login = asyncHandler(async (req, res, next) => {
     res.status(401).json({ error: "Invalid username" });
   }
 });
+
+exports.get_verification_code = asyncHandler(async (req, res, next) => {
+  const code = Math.floor(Math.random() * 9000 + 1000);
+  res.status(200).json({ smsCode: code });
+});

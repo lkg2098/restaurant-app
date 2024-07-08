@@ -87,6 +87,11 @@ describe("test index endpoints", () => {
     expect(res.status).toBe(401);
     expect(res.body.error).toBe("Not authorized");
   });
+  it("test verification code", async () => {
+    const res = await request(app).get("/verifyPhone");
+    expect(res.status).toBe(200);
+    expect(res.body.smsCode.toString().length).toBe(4);
+  });
 });
 
 // users -------------------------------------------------------->
@@ -231,7 +236,7 @@ describe("test user endpoints", () => {
   });
   it("test update username - same username", async () => {
     const res = await request(app)
-      .put("/users/8/username")
+      .put("/users/account/username")
       .set("Authorization", authTokens.john)
       .send({ newUsername: "john" });
     expect(res.status).toBe(401);
@@ -239,21 +244,21 @@ describe("test user endpoints", () => {
   });
   it("test update username - no new username", async () => {
     const res = await request(app)
-      .put("/users/8/username")
+      .put("/users/account/username")
       .set("Authorization", authTokens.john);
     expect(res.status).toBe(401);
     expect(res.body.error).toBe("Invalid new username");
   });
   it("test update username - no auth token", async () => {
     const res = await request(app)
-      .put("/users/8/username")
+      .put("/users/account/username")
       .send({ newUsername: "john2" });
     expect(res.status).toBe(401);
     expect(res.body.error).toBe("Not authorized, token not available");
   });
   it("test update username - bad auth token", async () => {
     const res = await request(app)
-      .put("/users/8/username")
+      .put("/users/account/username")
       .set("Authorization", "hi")
       .send({ newUsername: "john2" });
     expect(res.status).toBe(401);
@@ -261,7 +266,7 @@ describe("test user endpoints", () => {
   });
   it("test update username", async () => {
     const res = await request(app)
-      .put("/users/8/username")
+      .put("/users/account/username")
       .set("Authorization", authTokens.john)
       .send({ newUsername: "john2" });
 
@@ -276,7 +281,7 @@ describe("test user endpoints", () => {
     expect(updated.body.user.username).toBe("john2");
   });
   it("test update password - no auth token", async () => {
-    const res = await request(app).put("/users/8/password").send({
+    const res = await request(app).put("/users/account/password").send({
       newPassword: "password1",
     });
     expect(res.status).toBe(401);
@@ -284,7 +289,7 @@ describe("test user endpoints", () => {
   });
   it("test update password - bad auth token", async () => {
     const res = await request(app)
-      .put("/users/8/password")
+      .put("/users/account/password")
       .set("Authorization", "hi")
       .send({
         newPassword: "password1",
@@ -294,7 +299,7 @@ describe("test user endpoints", () => {
   });
   it("test update password", async () => {
     const res = await request(app)
-      .put("/users/8/password")
+      .put("/users/account/password")
       .set("Authorization", authTokens.john2)
       .send({
         newPassword: "password1",

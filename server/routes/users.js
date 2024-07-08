@@ -20,9 +20,17 @@ router.put("/account", verifyToken, user_controller.user_update);
 
 router.get("/:username", user_controller.user_get_by_username);
 
-router.put("/:id/username", verifyToken, user_controller.user_update_username);
+router.put(
+  "/account/username",
+  verifyToken,
+  user_controller.user_update_username
+);
 
-router.put("/:id/password", verifyToken, user_controller.user_update_password);
+router.put(
+  "/account/password",
+  verifyToken,
+  user_controller.user_update_password
+);
 
 router.delete("/:id", verifyToken, user_controller.user_delete);
 

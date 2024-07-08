@@ -60,54 +60,38 @@ exports.user_update_page = asyncHandler(async (req, res, next) => {
 
 // update user information
 exports.user_update_username = asyncHandler(async (req, res, next) => {
-  if (req.decoded && req.decoded.user_id == req.params.id) {
-    let { newUsername } = req.body;
-    if (!newUsername || req.decoded.username == newUsername) {
-      res.status(401).json({ error: "Invalid new username" });
-    } else {
-      let existingUser = await user_model.get_user_by_username(newUsername);
-
-      if (!existingUser) {
-        let update = await user_model
-          .update_username(req.decoded.user_id, newUsername)
-          .catch((err) => {
-            console.log(err);
-            res.status(500).json({ error: err });
-          });
-
-        let accessTokens = generate_auth_tokens(
-          req.decoded.user_id,
-          newUsername
-        );
-
-        res
-          .status(200)
-          .json({ ...accessTokens, message: "Username updated successfully" });
-      } else {
-        res.status(401).json({ error: "Username taken" });
-      }
-    }
+  let { newUsername } = req.body;
+  if (!newUsername || req.decoded.username == newUsername) {
+    res.status(401).json({ error: "Invalid new username" });
   } else {
-    res.status(401).json({ error: "Not authorized" });
+    let existingUser = await user_model.get_user_by_username(newUsername);
+
+    if (!existingUser) {
+      let update = await user_model.update_username(
+        req.decoded.user_id,
+        newUsername
+      );
+
+      let accessTokens = generate_auth_tokens(req.decoded.user_id, newUsername);
+
+      res
+        .status(200)
+        .json({ ...accessTokens, message: "Username updated successfully" });
+    } else {
+      res.status(401).json({ error: "Username taken" });
+    }
   }
 });
 
 exports.user_update_password = asyncHandler(async (req, res, next) => {
-  if (req.decoded && req.decoded.user_id == req.params.id) {
-    let { newPassword } = req.body;
-    if (!newPassword) {
-      res.status(401).json({ error: "Invalid new password" });
-    } else {
-      let passwordHash = await bcrypt.hash(newPassword, 8);
-      await user_model
-        .update_password(req.params.id, passwordHash)
-        .catch((err) => {
-          res.status(500).json({ error: err });
-        });
-      res.status(200).json();
-    }
+  let { newPassword } = req.body;
+  if (!newPassword) {
+    res.status(401).json({ error: "Invalid new password" });
   } else {
-    res.status(401).json({ error: "Not authorized" });
+    let passwordHash = await bcrypt.hash(newPassword, 8);
+    await user_model.update_password(req.params.id, passwordHash);
+
+    res.status(200).json();
   }
 });
 
@@ -116,15 +100,19 @@ exports.user_update = asyncHandler(async (req, res, next) => {
 
   if (name) {
     await user_model.update_name(req.decoded.user_id, name);
+    res.status(200).json({ message: "Successfully updated" });
   } else if (phone_number) {
     await user_model.update_phone_number(req.decoded.user_id, phone_number);
+    res.status(200).json({ message: "Successfully updated" });
   } else if (profile_image) {
     await user_model.update_profile_image(req.decoded.user_id, profile_image);
+    res.status(200).json({ message: "Successfully updated" });
   } else if (push_token) {
     await user_model.update_push_token(req.decoded.user_id, push_token);
+    res.status(200).json({ message: "Successfully updated" });
+  } else {
+    res.status(401).json({ error: "Invalid values" });
   }
-
-  res.status(200).json({ message: "Successfully updated" });
 });
 
 // get user by id (for account info page)

@@ -12,6 +12,8 @@ router.get("/signup", user_controller.user_register_page);
 
 router.post("/signup", auth.register);
 
+router.get("/verifyPhone", auth.get_verification_code);
+
 router.get("/login", user_controller.user_login_page);
 
 router.post("/login", auth.login);
