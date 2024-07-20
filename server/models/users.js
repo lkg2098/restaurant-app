@@ -20,7 +20,7 @@ exports.create_user = async (username, password, phone_number) => {
       [username, password, phone_number]
     );
 
-    return result.rows[0];
+    return result.rows[0].user_id;
   } catch (err) {
     throw err;
   }
