@@ -7,13 +7,13 @@ let db = new sqlite3.Database(
   (err) => {
     if (err && err.code == "SQLITE_CANTOPEN") {
       console.log("couldn't open database");
-      createDatabase();
+      // createDatabase();
       return;
     } else if (err) {
       console.log("Getting error " + err);
       exit(1);
     }
-    createTables(db);
+    // createTables(db);
   }
 );
 
@@ -146,6 +146,14 @@ db.addTestData = async () => {
     passwords.map(async (p) => await bcrypt.hash(p, 8))
   );
   const now = new Date();
+
+  // ('Test1','$2b$08$Om/tZKUFHf/wLBApjRuv4.PLl6NfXmnk1pSqKVTrl6w0Qtjw19ZVK','Terry Bing','1111111111','terry@example.com'),
+  // ('bob96','$2b$08$ibhlWhVyzRpzFvq.LJ668.sUfpxn7r8zZrw8SgD6Ji1PKDM/IvdEm','Bob Smith','2222222222','bob@example.com'),
+  // ('jillian012','$2b$08$KSZUk7VtEJPyHgrAERgzCuLE9bkYC3eIosU7iTcSWy168YAp/WwEq','Jillian Morris','33333333333','jillian12@example.com'),
+  // ('rick2014','$2b$08$PDf.0mqfnZvWZKwqfffUXOj50wpowEdQ6fN19QWGq6.ElMiXskAmS','Richard Farrow','4444444444','rick@example.com'),
+  // ('ghostBoy97','$2b$08$uJfG/5jMmDIuOQ6wk9On0ujnHLF4MA9W02f/fg0jISz7CFVJEhaWu','Casper Theghost','5555555555','casper@example.com'),
+  // ('linda45','$2b$08$tAum7PThmQ7pNjVJEXrYh.Wsq5vrrcvhYiExOzfx12MTcVxRIkFS2','Linda Blank','7777777777','linda@example.com'),
+  // ('24601','$2b$08$409KEFO5K6RiWuLJXxtgR.6J/efUmo8eyydgIq//GFSZm9ioU5ltC','Jean Valjean','2460124601','jvj@example.com')
   db.serialize(() => {
     db.all(
       `insert 
@@ -198,12 +206,12 @@ db.addTestData = async () => {
     db.all(
       `insert into 
     session_member (session_id, user_id, role) 
-    values (1,1, "admin"),
-    (1,2, "guest"),
-    (1,3, "guest"),
-    (1,5, "guest"),
-    (1,6, "guest"),
-    (1,7, "guest")`,
+    values (27,1, 'admin'),
+    (27,2, 'guest'),
+    (27,3, 'guest'),
+    (27,5, 'guest'),
+    (27,6, 'guest'),
+    (27,7, 'guest')`,
       [],
       (err) => console.log(err)
     );
@@ -211,48 +219,48 @@ db.addTestData = async () => {
       `insert into 
   session_restaurant (place_id, session_id, user_id, approved)
   values 
-  ("resA", 1, 2, 1),
-  ("resA", 1, 6, 1),
-  ("resA", 1, 7, 0),
-  ("resA", 1, 3, 1),
-  ("resA", 1, 1, 1),
-  ("resA", 1, 5, 1),
+  ('resA', 27, 2, 'true'),
+  ('resA', 27, 6, 'true'),
+  ('resA', 27, 7, 'false'),
+  ('resA', 27, 3, 'true'),
+  ('resA', 27, 1, 'true'),
+  ('resA', 27, 5, 'true'),
 
-  ("resB", 1, 3, 0),
-  ("resB", 1, 6, 0),
-  ("resB", 1, 5, 0),
-  ("resB", 1, 1, 0),
+  ('resB', 27, 3, 'false'),
+  ('resB', 27, 6, 'false'),
+  ('resB', 27, 5, 'false'),
+  ('resB', 27, 1, 'false'),
 
-  ("resC", 1, 6, 1),
-  ("resC", 1, 7, 1),
-  ("resC", 1, 2, 1),
-  ("resC", 1, 1, 1),
-  ("resC", 1, 3, 1),
+  ('resC', 27, 6, 'true'),
+  ('resC', 27, 7, 'true'),
+  ('resC', 27, 2, 'true'),
+  ('resC', 27, 1, 'true'),
+  ('resC', 27, 3, 'true'),
 
-  ("resD", 1, 3, 1),
-  ("resD", 1, 5, 1),
-  ("resD", 1, 2, 0),
+  ('resD', 27, 3, 'true'),
+  ('resD', 27, 5, 'true'),
+  ('resD', 27, 2, 'false'),
 
-  ("resE", 1, 7, 0),
-  ("resE", 1, 3, 1),
-  ("resE", 1, 1, 1),
-  ("resE", 1, 5, 1),
-  ("resE", 1, 3, 0),
+  ('resE', 27, 7, 'false'),
+  ('resE', 27, 3, 'true'),
+  ('resE', 27, 1, 'true'),
+  ('resE', 27, 5, 'true'),
+  ('resE', 27, 3, 'false'),
 
-  ("resF", 1, 6, 0),
-  ("resF", 1, 5, 0),
+  ('resF', 27, 6, 'false'),
+  ('resF', 27, 5, 'false'),
 
-  ("resG", 1, 1, 0),
-  ("resG", 1, 6, 1),
-  ("resG", 1, 7, 1),
-  ("resG", 1, 2, 0),
-  ("resG", 1, 5, 1),
-  ("resG", 1, 3, 1),
+  ('resG', 27, 1, 'false'),
+  ('resG', 27, 6, 'true'),
+  ('resG', 27, 7, 'true'),
+  ('resG', 27, 2, 'false'),
+  ('resG', 27, 5, 'true'),
+  ('resG', 27, 3, 'true'),
 
-  ("resH", 1, 3, 1),
-  ("resH", 1, 5, 1),
+  ('resH', 27, 3, 'true'),
+  ('resH', 27, 5, 'true'),
   
-  ("resI", 1, 2, 0)
+  ('resI', 27, 2, 'false')
   `,
       [],
       (err) => {
@@ -261,10 +269,10 @@ db.addTestData = async () => {
     );
     db.all(
       `insert into member_preference(session_id, user_id, preference_tag, want_to_eat) 
-    values (1,1, 'chinese_restaurant', 1),
-    (1,1,'mexican_restaurant',1),
-    (1,1, 'lebanese_restaurant',0),
-    (1,1,'american_restaurant', 0)`,
+    values (1,1, 'chinese_restaurant', 'true'),
+    (1,1,'mexican_restaurant','true'),
+    (1,1, 'lebanese_restaurant','false'),
+    (1,1,'american_restaurant', 'false')`,
       [],
       (err) => {
         console.log(err);

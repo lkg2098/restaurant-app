@@ -2,7 +2,7 @@ const asyncHandler = require("express-async-handler");
 const preference_model = require("../models/preferences");
 
 exports.prevent_duplicate_preferences = asyncHandler(async (req, res, next) => {
-  const { sessionId } = req.params;
+  const { mealId } = req.params;
   const { user_id } = req.decoded;
   const { toAdd } = req.body;
   const wanted = req.query.wanted;
@@ -12,7 +12,7 @@ exports.prevent_duplicate_preferences = asyncHandler(async (req, res, next) => {
   } else if (wanted === "1") {
     if (toAdd.length) {
       let oldPreferences = await preference_model.get_wanted_preferences(
-        sessionId,
+        mealId,
         user_id
       );
       let oldPrefSet = new Set(oldPreferences.map((p) => p.preference_tag));
@@ -27,7 +27,7 @@ exports.prevent_duplicate_preferences = asyncHandler(async (req, res, next) => {
   } else if (wanted === "0") {
     if (toAdd.length) {
       let oldPreferences = await preference_model.get_unwanted_preferences(
-        sessionId,
+        mealId,
         user_id
       );
       let oldPrefSet = new Set(oldPreferences.map((p) => p.preference_tag));

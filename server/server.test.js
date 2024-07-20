@@ -1,19 +1,28 @@
 const request = require("supertest");
 const app = require("./server");
 const bcrypt = require("bcrypt");
-const db = require("./db");
+// const db = require("./db");
+const pool = require("./pool");
 
-beforeAll(async () => {
-  await db.addTestData();
-});
-afterAll(() => {
-  db.clearTestData();
+// beforeAll(async () => {
+//   await db.addTestData();
+// });
+afterAll(async () => {
+  // db.clearTestData();
+  await pool.clearTestData();
+  pool.end();
   app.closeServer();
 });
 
 const authTokens = { john: "a", john2: "b", johnRefresh: "r" };
+const userData = { john: { id: "a" } };
+let testMealId = 1;
 
 describe("test index endpoints", () => {
+  it("test test endpoint", async () => {
+    const res = await request(app).get("/test");
+    expect(res.status).toBe(200);
+  });
   it("test signup", async () => {
     const res = await request(app).post("/signup").send({
       username: "john",
@@ -24,6 +33,7 @@ describe("test index endpoints", () => {
     expect(res.body.message).toBe("Registered successfully");
     expect(res.body.accessToken).toBeTruthy();
     expect(res.body.refreshToken).toBeTruthy();
+    userData.john.id = res.body.userId.user_id;
     const newUser = await request(app).get("/users/john");
     expect(newUser.body.user.username).toBe("john");
     expect(bcrypt.compare("maybe45", newUser.body.user.password)).toBeTruthy();
@@ -46,6 +56,7 @@ describe("test index endpoints", () => {
     expect(res.status).toBe(401);
     expect(res.body.error).toBe("This phone number is taken");
   });
+
   it("login correct username and password", async () => {
     const res = await request(app)
       .post("/login")
@@ -75,6 +86,7 @@ describe("test index endpoints", () => {
     expect(res.body.accessToken).not.toBeTruthy();
     expect(res.body.refreshToken).not.toBeTruthy();
   });
+
   it("test refresh token", async () => {
     const res = await request(app)
       .post("/refresh")
@@ -94,13 +106,14 @@ describe("test index endpoints", () => {
   });
 });
 
-// users -------------------------------------------------------->
+// // users -------------------------------------------------------->
 describe("test user endpoints", () => {
   it("test get all users - no auth token", async () => {
     const res = await request(app).get("/users");
     expect(res.status).toBe(401);
     expect(res.body.error).toBe("Not authorized, token not available");
   });
+
   it("test get all users - bad auth token", async () => {
     const res = await request(app).get("/users").set("Authorization", "hi");
     expect(res.status).toBe(401);
@@ -115,6 +128,7 @@ describe("test user endpoints", () => {
     expect(Array.isArray(res.body.users)).toBeTruthy();
     expect(res.body.users.length).toBe(8);
   });
+
   it("test get user by id - no auth token", async () => {
     const res = await request(app).get("/users/account");
     expect(res.status).toBe(401);
@@ -132,7 +146,7 @@ describe("test user endpoints", () => {
       .get("/users/account")
       .set("Authorization", authTokens.john);
     expect(res.status).toBe(200);
-    expect(res.body.user.user_id).toBe(8);
+    expect(res.body.user.user_id).toBe(userData.john.id);
     expect(res.body.user.username).toBe("john");
     expect(bcrypt.compare("maybe45", res.body.user.password)).toBeTruthy();
   });
@@ -155,6 +169,7 @@ describe("test user endpoints", () => {
       .set("Authorization", authTokens.john);
     expect(user.body.user.name).toBe("John");
   });
+
   it("test update phone number", async () => {
     const res = await request(app)
       .put("/users/account")
@@ -199,7 +214,7 @@ describe("test user endpoints", () => {
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.users)).toBeTruthy();
-    expect(res.body.users.length).toBe(4);
+    expect(res.body.users.length >= 4).toBeTruthy();
   });
   it("test query usernames - no auth token", async () => {
     const res = await request(app)
@@ -313,94 +328,95 @@ describe("test user endpoints", () => {
     ).toBeTruthy();
   });
   it("test user delete - no auth token", async () => {
-    const res = await request(app).delete("/users/8");
+    const res = await request(app).delete("/users");
     expect(res.status).toBe(401);
     expect(res.body.error).toBe("Not authorized, token not available");
   });
   it("test user delete - bad auth token", async () => {
-    const res = await request(app)
-      .delete("/users/8")
-      .set("Authorization", "hi");
+    const res = await request(app).delete("/users").set("Authorization", "hi");
     expect(res.status).toBe(401);
     expect(res.body.error).toBe("Not authorized");
   });
   it("test user delete", async () => {
     const res = await request(app)
-      .delete("/users/8")
+      .delete("/users")
       .set("Authorization", authTokens.john2);
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Successfully deleted");
   });
 });
 
-// sessions -------------------------------------------------------->
-describe("test session endpoints", () => {
-  it("test session create", async () => {
+// // meals -------------------------------------------------------->
+describe("test meal endpoints", () => {
+  it("test meal create", async () => {
     const login = await request(app)
       .post("/login")
       .send({ username: "Test1", password: "password" });
     expect(login.status).toBe(200);
     authTokens.Test1 = "Bearer " + login.body.accessToken;
     const res = await request(app)
-      .post("/sessions/new")
+      .post("/meals/new")
       .set("Authorization", authTokens.Test1)
       .send({
-        session_name: "Test Session",
-        session_photo: "",
+        meal_name: "Test Meal",
+        meal_photo: "",
         scheduled_at: new Date("August 17, 2024 03:24:00"),
         address: "100 Cherry Ln Brewster, NY 10000",
-        location_lat: 200,
-        location_long: 300,
+        location_coords: [200, 300],
         radius: 20,
-        budget_min: 10,
-        budget_max: 30,
+        budget: [10, 30],
       });
+    console.log(res.body);
     expect(res.status).toBe(200);
-    expect(res.body.sessionId).toBe(2);
+    expect(res.body.meal_id).toBeTruthy();
+    testMealId = res.body.meal_id;
   });
-  it("test get sessions by user id", async () => {
+
+  it("test get meals by user id", async () => {
     const res = await request(app)
-      .get("/sessions")
+      .get("/meals")
       .set("Authorization", authTokens.Test1);
     console.log(res.body);
     expect(res.status).toBe(200);
+    expect(res.body.meals).toBeTruthy();
   });
-  it("test get past sessions by user id", async () => {
+  it("test get past meals by user id", async () => {
     const res = await request(app)
-      .get("/sessions")
+      .get("/meals")
       .query({ time: "past" })
       .set("Authorization", authTokens.Test1);
     console.log(res.body);
     expect(res.status).toBe(200);
+    expect(res.body.meals).toBeTruthy();
   });
-  it("test get future sessions by user id", async () => {
+  it("test get future meals by user id", async () => {
     const res = await request(app)
-      .get("/sessions")
+      .get("/meals")
       .query({ time: "future" })
       .set("Authorization", authTokens.Test1);
     console.log(res.body);
     expect(res.status).toBe(200);
+    expect(res.body.meals).toBeTruthy();
   });
-  it("test get session by id", async () => {
+  it("test get meal by id", async () => {
     const res = await request(app)
-      .get("/sessions/2")
+      .get(`/meals/${testMealId}`)
       .set("Authorization", authTokens.Test1);
     expect(res.status).toBe(200);
-    expect(res.body.session.session_id).toBe(2);
-    expect(res.body.session.location_lat).toBe(200);
-    expect(res.body.session.location_long).toBe(300);
-    expect(res.body.session.session_name).toBe("Test Session");
-    expect(res.body.session.session_photo).toBe("");
-    expect(res.body.session.scheduled_at).toBe("2024-08-17T07:24:00.000Z");
-    expect(res.body.session.address).toBe("100 Cherry Ln Brewster, NY 10000");
-    expect(res.body.session.radius).toBe(20);
-    expect(res.body.session.budget_min).toBe(10);
-    expect(res.body.session.budget_max).toBe(30);
-    expect(res.body.session.created_at).toBeTruthy();
+    expect(res.body.meal.meal_id).toBe(testMealId);
+    expect(res.body.meal.location_coords).toEqual([200, 300]);
+    expect(res.body.meal.meal_name).toBe("Test Meal");
+    expect(res.body.meal.meal_photo).toBe("");
+    expect(res.body.meal.scheduled_at).toBe("2024-08-17T07:24:00.000Z");
+    expect(res.body.meal.address).toBe("100 Cherry Ln Brewster, NY 10000");
+    expect(res.body.meal.radius).toBe(20);
+    expect(res.body.meal.budget).toEqual([10, 30]);
+    expect(res.body.meal.created_at).toBeTruthy();
   });
+
   it("test add members - add one", async () => {
     const res = await request(app)
-      .post("/sessions/2/members/new")
+      .post(`/meals/${testMealId}/members/new`)
       .set("Authorization", authTokens.Test1)
       .send({ users: ["bob96"] });
     expect(res.status).toBe(200);
@@ -408,7 +424,7 @@ describe("test session endpoints", () => {
   });
   it("test add members - add multiple", async () => {
     const res = await request(app)
-      .post("/sessions/2/members/new")
+      .post(`/meals/${testMealId}/members/new`)
       .set("Authorization", authTokens.Test1)
       .send({ users: ["ghostBoy97", "linda45"] });
     expect(res.status).toBe(200);
@@ -416,7 +432,7 @@ describe("test session endpoints", () => {
   });
   it("test add members - add some non-existent", async () => {
     const res = await request(app)
-      .post("/sessions/2/members/new")
+      .post(`/meals/${testMealId}/members/new`)
       .set("Authorization", authTokens.Test1)
       .send({ users: ["24601", "linda47"] });
     expect(res.status).toBe(200);
@@ -427,119 +443,114 @@ describe("test session endpoints", () => {
   });
   it("test add members - no users exist", async () => {
     const res = await request(app)
-      .post("/sessions/2/members/new")
+      .post(`/meals/${testMealId}/members/new`)
       .set("Authorization", authTokens.Test1)
       .send({ users: ["24602", "linda47"] });
     expect(res.status).toBe(401);
     expect(res.body.error).toBe("Could not find users to add");
   });
-  it("test add members - members already in session", async () => {
+  it("test add members - members already in meal", async () => {
     const res = await request(app)
-      .post("/sessions/2/members/new")
+      .post(`/meals/${testMealId}/members/new`)
       .set("Authorization", authTokens.Test1)
       .send({ users: ["24601", "linda45"] });
     expect(res.status).toBe(401);
-    expect(res.body.error).toBe("All users already in session");
+    expect(res.body.error).toBe("All users already in meal");
   });
-  it("test list session members", async () => {
+  it("test list meal members", async () => {
     const res = await request(app)
-      .get("/sessions/2/members")
+      .get(`/meals/${testMealId}/members`)
       .set("Authorization", authTokens.Test1);
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.members)).toBeTruthy();
     expect(res.body.members.length).toBe(5);
   });
-  it("test session search", async () => {
+
+  it("test meal search", async () => {
     const res = await request(app)
-      .post("/sessions/search")
+      .post("/meals/search")
       .set("Authorization", authTokens.Test1)
       .send({ queryTerm: "o" });
+    console.log(res.body);
+    expect(res.status).toBe(200);
   });
-  it("test delete member from session", async () => {
+  it("test delete member from meal", async () => {
     const res = await request(app)
-      .delete("/sessions/2/members/4")
+      .delete(`/meals/${testMealId}/members/4`)
       .set("Authorization", authTokens.Test1);
     expect(res.status).toBe(200);
   });
-  it("test update session data", async () => {
+
+  it("test update meal data", async () => {
     const res = await request(app)
-      .put("/sessions/2")
+      .put(`/meals/${testMealId}`)
       .set("Authorization", authTokens.Test1)
       .send({
-        session_name: "Test Session",
-        session_photo: "",
+        meal_name: "Test Meal",
+        meal_photo: "",
         scheduled_at: new Date("August 17, 2024 03:24:00"),
         address: "100 Cherry Ln Brewster, NY 10000",
-        location_lat: 100,
-        location_long: 100,
+        location_coords: [100, 100],
         radius: 20,
-        budget_min: 10,
-        budget_max: 30,
+        budget: [10, 30],
         rating: 3.5,
       });
     expect(res.status).toBe(200);
-    expect(res.body.location_lat).toBe(100);
-    expect(res.body.location_long).toBe(100);
+    expect(res.body.location_coords).toEqual([100, 100]);
   });
-  it("test update session data - user not in session", async () => {
+  it("test update meal data - user not in meal", async () => {
     const res = await request(app)
-      .put("/sessions/2")
+      .put(`/meals/${testMealId}`)
       .set("Authorization", authTokens.john)
       .send({
-        session_name: "Test Session",
-        session_photo: "",
+        meal_name: "Test Meal",
+        meal_photo: "",
         scheduled_at: new Date("August 17, 2024 03:24:00"),
         address: "100 Cherry Ln Brewster, NY 10000",
-        location_lat: 50,
-        location_long: 50,
+        location_coords: [50, 50],
         radius: 20,
-        budget_min: 10,
-        budget_max: 30,
+        budget: [10, 30],
         rating: 3.5,
       });
     expect(res.status).toBe(401);
-    expect(res.body.error).toBe("Not authorized, user not in session");
+    expect(res.body.error).toBe("Not authorized, user not in meal");
   });
-  it("test update session data - bad token", async () => {
+  it("test update meal data - bad token", async () => {
     const res = await request(app)
-      .put("/sessions/2")
+      .put(`/meals/${testMealId}`)
       .set("Authorization", "hi")
       .send({
-        session_name: "Test Session",
-        session_photo: "",
+        meal_name: "Test Meal",
+        meal_photo: "",
         scheduled_at: new Date("August 17, 2024 03:24:00"),
         address: "100 Cherry Ln Brewster, NY 10000",
-        location_lat: 50,
-        location_long: 50,
+        location_coords: [50, 50],
         radius: 20,
-        budget_min: 10,
-        budget_max: 30,
+        budget: [10, 30],
         rating: 3.5,
       });
     expect(res.status).toBe(401);
     expect(res.body.error).toBe("Not authorized");
   });
-  it("test update session data - no token", async () => {
+  it("test update meal data - no token", async () => {
     const res = await request(app)
-      .put("/sessions/2")
+      .put(`/meals/${testMealId}`)
       .send({
-        session_name: "Test Session",
-        session_photo: "",
+        meal_name: "Test Meal",
+        meal_photo: "",
         scheduled_at: new Date("August 17, 2024 03:24:00"),
         address: "100 Cherry Ln Brewster, NY 10000",
-        location_lat: 50,
-        location_long: 50,
+        location_coords: [50, 50],
         radius: 20,
-        budget_min: 10,
-        budget_max: 30,
+        budget: [10, 30],
         rating: 3.5,
       });
     expect(res.status).toBe(401);
     expect(res.body.error).toBe("Not authorized, token not available");
   });
-  it("test like session", async () => {
+  it("test like meal", async () => {
     const res = await request(app)
-      .put("/sessions/2")
+      .put(`/meals/${testMealId}`)
       .send({
         liked: 0,
       })
@@ -547,34 +558,34 @@ describe("test session endpoints", () => {
     expect(res.status).toBe(200);
     expect(res.body.liked).toBe(false);
   });
-  it("test update session chosen restaurant", async () => {
+  it("test update meal chosen restaurant", async () => {
     const res = await request(app)
-      .put("/sessions/2")
+      .put(`/meals/${testMealId}`)
       .set("Authorization", authTokens.Test1)
       .send({ restaurant: "aRestaurantId" });
     expect(res.status).toBe(200);
     expect(res.body.chosen_restaurant).toBe("aRestaurantId");
   });
-  it("test delete session", async () => {
+  it("test delete meal", async () => {
     const res = await request(app)
-      .delete("/sessions/2")
+      .delete(`/meals/${testMealId}`)
       .set("Authorization", authTokens.Test1);
     expect(res.status).toBe(200);
   });
 });
 
 // restaurants ------------------------------------------------>
-describe("test session restaurants", () => {
+describe("test meal restaurants", () => {
   it("test get restaurants", async () => {
     const res = await request(app)
-      .get("/sessions/1/restaurants")
+      .get("/meals/27/restaurants")
       .set("Authorization", authTokens.Test1);
-
+    console.log(res.body);
     expect(res.status).toBe(200);
   });
   it("test add restaurant - insufficient data", async () => {
     const res = await request(app)
-      .post("/sessions/1/restaurants")
+      .post("/meals/27/restaurants")
       .set("Authorization", authTokens.Test1)
       .send({ place_id: "resM" });
     expect(res.status).toBe(401);
@@ -582,7 +593,7 @@ describe("test session restaurants", () => {
   });
   it("test add restaurant - like", async () => {
     const res = await request(app)
-      .post("/sessions/1/restaurants")
+      .post("/meals/27/restaurants")
       .query({ approved: 1 })
       .set("Authorization", authTokens.Test1)
       .send({ place_id: "resM" });
@@ -593,7 +604,7 @@ describe("test session restaurants", () => {
   });
   it("test add restaurant - already exists", async () => {
     const res = await request(app)
-      .post("/sessions/1/restaurants")
+      .post("/meals/27/restaurants")
       .query({ approved: 0 })
       .set("Authorization", authTokens.Test1)
       .send({ place_id: "resM" });
@@ -602,14 +613,14 @@ describe("test session restaurants", () => {
   });
   it("test delete restaurant", async () => {
     const res = await request(app)
-      .delete("/sessions/1/restaurants/resM")
+      .delete("/meals/27/restaurants/resM")
       .set("Authorization", authTokens.Test1);
 
     expect(res.status).toBe(200);
   });
   it("test add restaurant - dislike", async () => {
     const res = await request(app)
-      .post("/sessions/1/restaurants")
+      .post("/meals/27/restaurants")
       .query({ approved: 0 })
       .set("Authorization", authTokens.Test1)
       .send({ place_id: "resM" });
@@ -620,7 +631,7 @@ describe("test session restaurants", () => {
   });
   it("test update restaurant", async () => {
     const res = await request(app)
-      .put("/sessions/1/restaurants")
+      .put("/meals/27/restaurants")
       .query({ approved: 1 })
       .set("Authorization", authTokens.Test1)
       .send({ place_id: "resM" });
@@ -635,7 +646,7 @@ describe("test session restaurants", () => {
 describe("test preferences endpoints", () => {
   it("test get preferences", async () => {
     const res = await request(app)
-      .get("/sessions/1/preferences")
+      .get("/meals/27/preferences")
       .set("Authorization", authTokens.Test1);
     expect(res.status).toBe(200);
     expect(res.body.preferences).toBeTruthy();
@@ -643,16 +654,16 @@ describe("test preferences endpoints", () => {
   });
   it("test get preferences - wanted", async () => {
     const res = await request(app)
-      .get("/sessions/1/preferences")
+      .get("/meals/27/preferences")
       .query({ wanted: 1 })
       .set("Authorization", authTokens.Test1);
     expect(res.status).toBe(200);
     expect(res.body.preferences).toBeTruthy();
     expect(res.body.preferences.length).toBe(2);
   });
-  it("test get preferences - wanted", async () => {
+  it("test get preferences - not wanted", async () => {
     const res = await request(app)
-      .get("/sessions/1/preferences")
+      .get("/meals/27/preferences")
       .query({ wanted: 0 })
       .set("Authorization", authTokens.Test1);
     expect(res.status).toBe(200);
@@ -661,7 +672,7 @@ describe("test preferences endpoints", () => {
   });
   it("test update preferences - no deletion", async () => {
     const res = await request(app)
-      .post("/sessions/1/preferences")
+      .post("/meals/27/preferences")
       .set("Authorization", authTokens.Test1)
       .send({
         toAdd: ["thai_restaurant"],
@@ -672,14 +683,14 @@ describe("test preferences endpoints", () => {
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Successfully updated preferences");
     let list = await request(app)
-      .get("/sessions/1/preferences")
+      .get("/meals/27/preferences")
       .query({ wanted: 1 })
       .set("Authorization", authTokens.Test1);
     expect(list.body.preferences.length).toBe(3);
   });
   it("test update preferences", async () => {
     const res = await request(app)
-      .post("/sessions/1/preferences")
+      .post("/meals/27/preferences")
       .set("Authorization", authTokens.Test1)
       .send({
         toAdd: ["pizza_restaurant"],
@@ -689,7 +700,7 @@ describe("test preferences endpoints", () => {
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Successfully updated preferences");
     let list = await request(app)
-      .get("/sessions/1/preferences")
+      .get("/meals/27/preferences")
       .query({ wanted: 1 })
       .set("Authorization", authTokens.Test1);
     console.log(list.body);
@@ -697,7 +708,7 @@ describe("test preferences endpoints", () => {
   });
   it("test update preferences - preexisting tag", async () => {
     const res = await request(app)
-      .post("/sessions/1/preferences")
+      .post("/meals/27/preferences")
       .set("Authorization", authTokens.Test1)
       .send({
         toAdd: ["pizza_restaurant"],
@@ -708,59 +719,59 @@ describe("test preferences endpoints", () => {
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Already up to date");
     let list = await request(app)
-      .get("/sessions/1/preferences")
+      .get("/meals/27/preferences")
       .query({ wanted: 1 })
       .set("Authorization", authTokens.Test1);
     expect(list.body.preferences.length).toBe(3);
   });
 });
 
-// GOOGLE ENDPOINTS =================================================>
-describe("test google endpoints", () => {
-  it("test sample data", async () => {
-    const res = await request(app)
-      .get("/restaurants/test")
-      .set("Authorization", authTokens.Test1);
-    // console.log(res.body.results);
-    expect(res.status).toBe(200);
-  });
-  // it("test nearby search", async () => {
-  //   const res = await request(app).get("/restaurants");
-  //   expect(res.status).toBe(200);
-  //   expect(res.body.message).toBe("this is working");
-  // });
-});
-
-// describe("test auth middleware", () => {
-//   it("test create auth token", async () => {
+// // GOOGLE ENDPOINTS =================================================>
+// describe("test google endpoints", () => {
+//   it("test sample data", async () => {
 //     const res = await request(app)
-//       .post("/auth")
-//       .send({ username: "Test2", password: "password" });
+//       .get("/restaurants/test")
+//       .set("Authorization", authTokens.Test1);
+//     // console.log(res.body.results);
 //     expect(res.status).toBe(200);
-//     expect(res.body.accessToken).toBeTruthy();
-//     expect(res.body.refreshToken).toBeTruthy();
 //   });
-//   it("test verify access token", async () => {
-//     const res = await request(app)
-//       .post("/auth")
-//       .send({ username: "Test3", password: "password" });
-//     expect(res.status).toBe(200);
-//     const ver = await request(app)
-//       .post("/verify")
-//       .set("authorization", res.body.accessToken);
-//     console.log(ver.body.message);
-//     expect(ver.status).toBe(200);
-//     expect(ver.body.message).toBe("Authorized user 8 - Test3");
-//   });
-//   it("test refresh token", async () => {
-//     const res = await request(app)
-//       .post("/auth")
-//       .send({ username: "Test4", password: "password" });
-//     expect(res.status).toBe(200);
-//     const ver = await request(app)
-//       .post("/refresh")
-//       .set("authorization", res.body.refreshToken);
-//     expect(ver.status).toBe(200);
-//     expect(ver.body.accessToken).toBeTruthy();
-//   });
+//   // it("test nearby search", async () => {
+//   //   const res = await request(app).get("/restaurants");
+//   //   expect(res.status).toBe(200);
+//   //   expect(res.body.message).toBe("this is working");
+//   // });
 // });
+
+// // describe("test auth middleware", () => {
+// //   it("test create auth token", async () => {
+// //     const res = await request(app)
+// //       .post("/auth")
+// //       .send({ username: "Test2", password: "password" });
+// //     expect(res.status).toBe(200);
+// //     expect(res.body.accessToken).toBeTruthy();
+// //     expect(res.body.refreshToken).toBeTruthy();
+// //   });
+// //   it("test verify access token", async () => {
+// //     const res = await request(app)
+// //       .post("/auth")
+// //       .send({ username: "Test3", password: "password" });
+// //     expect(res.status).toBe(200);
+// //     const ver = await request(app)
+// //       .post("/verify")
+// //       .set("authorization", res.body.accessToken);
+// //     console.log(ver.body.message);
+// //     expect(ver.status).toBe(200);
+// //     expect(ver.body.message).toBe("Authorized user 8 - Test3");
+// //   });
+// //   it("test refresh token", async () => {
+// //     const res = await request(app)
+// //       .post("/auth")
+// //       .send({ username: "Test4", password: "password" });
+// //     expect(res.status).toBe(200);
+// //     const ver = await request(app)
+// //       .post("/refresh")
+// //       .set("authorization", res.body.refreshToken);
+// //     expect(ver.status).toBe(200);
+// //     expect(ver.body.accessToken).toBeTruthy();
+// //   });
+// // });

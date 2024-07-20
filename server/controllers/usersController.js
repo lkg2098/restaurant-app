@@ -147,10 +147,8 @@ exports.user_login_page = asyncHandler(async (req, res, next) => {
 
 // list users
 exports.users_list = asyncHandler(async (req, res, next) => {
-  let allUsers = user_model.list_users();
-  allUsers.then((users) => {
-    res.status(200).json({ users: users });
-  });
+  let users = await user_model.list_users();
+  res.status(200).json({ users: users });
 });
 
 // query users by username autocomplete
@@ -166,10 +164,12 @@ exports.users_query_username = asyncHandler(async (req, res, next) => {
 
 // delete user
 exports.user_delete = asyncHandler(async (req, res, next) => {
-  if (req.decoded && req.decoded.user_id == req.params.id) {
-    let deleted = await user_model.delete_user(req.params.id).catch((err) => {
-      res.status(500).json({ error: err });
-    });
+  if (req.decoded) {
+    let deleted = await user_model
+      .delete_user(req.decoded.user_id)
+      .catch((err) => {
+        res.status(500).json({ error: err });
+      });
     res.status(200).json({ message: "Successfully deleted" });
   } else {
     res.status(401).json({ error: "Not authorized" });

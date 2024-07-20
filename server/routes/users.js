@@ -3,7 +3,7 @@ const router = express.Router();
 
 // require user controller
 const user_controller = require("../controllers/usersController");
-const session_controller = require("../controllers/sessionsController");
+const meal_controller = require("../controllers/mealsController");
 const member_controller = require("../controllers/membersController");
 const { verifyToken } = require("../middleware/auth");
 
@@ -32,6 +32,6 @@ router.put(
   user_controller.user_update_password
 );
 
-router.delete("/:id", verifyToken, user_controller.user_delete);
+router.delete("/", verifyToken, user_controller.user_delete);
 
 module.exports = router;

@@ -1,21 +1,21 @@
 const asyncHandler = require("express-async-handler");
 const member_model = require("../models/members");
 
-exports.verify_session_member = asyncHandler(async (req, res, next) => {
+exports.verify_meal_member = asyncHandler(async (req, res, next) => {
   if (req.decoded) {
-    const sessionId = req.params.sessionId;
-
+    const mealId = req.params.mealId;
     const member = await member_model
-      .get_valid_session_member(sessionId, req.decoded.user_id)
+      .get_valid_meal_member(mealId, req.decoded.user_id)
       .catch((err) => res.status(500).json({ error: err }));
+
     if (member) {
       req.decoded = { ...req.decoded, role: member.role };
       next();
     } else {
-      console.log("Not authorized, user not in session");
+      console.log("Not authorized, user not in meal");
       return res
         .status(401)
-        .json({ error: "Not authorized, user not in session" });
+        .json({ error: "Not authorized, user not in meal" });
     }
   } else {
     console.log("Not authorized");
@@ -23,18 +23,16 @@ exports.verify_session_member = asyncHandler(async (req, res, next) => {
   }
 });
 
-exports.parse_session_body = (req) => {
+exports.parse_meal_body = (req) => {
   return {
-    session_name: req.body.session_name,
-    session_photo: req.body.session_photo,
+    meal_name: req.body.meal_name,
+    meal_photo: req.body.meal_photo,
     created_at: new Date().toISOString(),
     scheduled_at: req.body.scheduled_at,
     address: req.body.address,
-    location_lat: req.body.location_lat,
-    location_long: req.body.location_long,
+    location_coords: req.body.location_coords,
     radius: req.body.radius,
-    budget_min: req.body.budget_min,
-    budget_max: req.body.budget_max,
+    budget: req.body.budget,
     restaurant: req.body.restaurant,
     liked: req.body.liked,
   };

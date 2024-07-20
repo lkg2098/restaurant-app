@@ -8,7 +8,7 @@ const { Server } = require("socket.io");
 
 const indexRouter = require("./routes/index");
 const usersRouter = require("./routes/users");
-const sessionsRouter = require("./routes/sessions");
+const mealsRouter = require("./routes/meals");
 const restaurantsRouter = require("./routes/restaurants");
 
 const app = express();
@@ -29,7 +29,7 @@ app.use(bodyParser.json());
 
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
-app.use("/sessions", sessionsRouter);
+app.use("/meals", mealsRouter);
 app.use("/restaurants", restaurantsRouter);
 
 const port = process.env.PORT || 3000;
@@ -40,32 +40,32 @@ app.closeServer = () => {
 
 io.on("connection", (socket) => {
   console.log("user connected");
-  socket.on("joinSession", (sessionId) => {
-    socket.join(sessionId);
-    console.log(`in session ${sessionId}`);
+  socket.on("joinMeal", (mealId) => {
+    socket.join(mealId);
+    console.log(`in meal ${mealId}`);
   });
-  socket.on("leaveSession", (sessionId) => {
-    socket.leave(sessionId);
-    console.log(`exited session ${sessionId}`);
+  socket.on("leaveMeal", (mealId) => {
+    socket.leave(mealId);
+    console.log(`exited meal ${mealId}`);
   });
 
-  socket.on("like", (session, restaurant) => {
+  socket.on("like", (meal, restaurant) => {
     console.log(restaurant);
     if (restaurant.score != 1) {
-      socket.to(session).emit("newResData", restaurant, 1);
+      socket.to(meal).emit("newResData", restaurant, 1);
     } else {
-      socket.to(session).emit("match", restaurant);
+      socket.to(meal).emit("match", restaurant);
     }
   });
 
-  socket.on("dislike", (session, restaurant) => {
+  socket.on("dislike", (meal, restaurant) => {
     console.log(restaurant);
-    socket.to(session).emit("newResData", restaurant, 0);
+    socket.to(meal).emit("newResData", restaurant, 0);
   });
 
-  socket.on("requestData", (session) => {
-    console.log(session);
-    io.to(session).emit("sendData", "someData");
+  socket.on("requestData", (meal) => {
+    console.log(meal);
+    io.to(meal).emit("sendData", "someData");
   });
   socket.on("disconnect", () => {
     console.log("user disconnected");

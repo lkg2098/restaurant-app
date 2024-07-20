@@ -1,23 +1,23 @@
 const asyncHandler = require("express-async-handler");
 const preferences_model = require("../models/preferences");
 
-exports.get_preferences_for_session = asyncHandler(async (req, res, next) => {
-  const { sessionId } = req.params;
+exports.get_preferences_for_meal = asyncHandler(async (req, res, next) => {
+  const { mealId } = req.params;
   const { user_id } = req.decoded;
   const { wanted } = req.query;
   let preferences = [];
   if (!wanted) {
-    preferences = await preferences_model.get_preferences(sessionId, user_id);
+    preferences = await preferences_model.get_preferences(mealId, user_id);
     res.status(200).json({ preferences: preferences });
   } else if (wanted === "0") {
     preferences = await preferences_model.get_unwanted_preferences(
-      sessionId,
+      mealId,
       user_id
     );
     res.status(200).json({ preferences: preferences });
   } else if (wanted === "1") {
     preferences = await preferences_model.get_wanted_preferences(
-      sessionId,
+      mealId,
       user_id
     );
     res.status(200).json({ preferences: preferences });
@@ -27,7 +27,7 @@ exports.get_preferences_for_session = asyncHandler(async (req, res, next) => {
 });
 
 exports.update_preferences = asyncHandler(async (req, res, next) => {
-  const { sessionId } = req.params;
+  const { mealId } = req.params;
   const { user_id } = req.decoded;
   const { toDelete } = req.body;
   const toAdd = req.toAddCleaned;
@@ -38,7 +38,7 @@ exports.update_preferences = asyncHandler(async (req, res, next) => {
       toAdd,
       toDelete,
       wanted,
-      sessionId,
+      mealId,
       user_id
     );
 
