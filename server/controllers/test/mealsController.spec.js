@@ -1,11 +1,9 @@
 import * as factories from "../../models/factories/index.js";
-import Meal from "../../models/meals.js";
 import { expect } from "chai";
-import User from "../../models/users.js";
-import Guest from "../../models/guests.js";
 import moment from "moment/moment.js";
 
 import { createAuthenticatedTestServer } from "./utils/authenticatedRequest.js";
+import truncate from "./utils/truncate.js";
 
 describe("Meals Controller", () => {
   const setUpTest = async () => {
@@ -40,8 +38,7 @@ describe("Meals Controller", () => {
   };
 
   afterEach(async () => {
-    await Meal.destroy({ truncate: { cascade: true } });
-    await User.destroy({ truncate: { cascade: true } });
+    await truncate();
   });
 
   describe("meals_list_by_user_id", () => {
@@ -59,7 +56,6 @@ describe("Meals Controller", () => {
         radius: pastMeal.radius,
         budget: pastMeal.budget,
         chosen_restaurant: null,
-        liked: null,
         guests: [],
       });
     });

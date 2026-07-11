@@ -61,41 +61,36 @@ export const meal_search = asyncHandler(async (req, res, next) => {
 
 export const meal_create = asyncHandler(async (req, res, next) => {
   if (req.decoded) {
-    console.log(req.body);
     const adminId = req.decoded.user_id;
-    console.log(adminId);
-    // verify that admin user exists
-    const adminUser = await User.findByPk(adminId).catch((err) =>
-      res.status(500).json({ error: "Server Internal Error: " + err }),
-    );
-    console.log(adminUser);
-    if (adminUser) {
+
+    try {
       const {
         meal_name,
         meal_photo,
-        created_at,
         scheduled_at,
         location_id,
         location_coords,
         radius,
         budget,
       } = parse_meal_body(req);
-      console.log(req.body);
       //create meal
-      let meal = await meal_model.meal_create(
+      let meal = await Meal.create({
         meal_name,
         meal_photo,
-        created_at,
         scheduled_at,
         location_id,
         location_coords,
         radius,
         budget,
-      );
+      });
+
+      if (!meal) {
+        res.status(500).json({ error: "Could not create meal" });
+      }
 
       // add admin user
-      let testAdmin = await member_model.member_create(meal, adminId, "admin");
-      console.log(testAdmin);
+      await Guest.create({ meal_id: meal.id, user_id: req.decoded.user_id });
+
       if (meal) {
         res.status(200).json({ meal_id: meal });
       } else {
@@ -103,8 +98,8 @@ export const meal_create = asyncHandler(async (req, res, next) => {
           .status(401)
           .json({ error: "Insufficient data. Could not create meal" });
       }
-    } else {
-      res.status(404).json({ error: "Admin user not found" });
+    } catch (err) {
+      res.status(500).json({ error: `Could not create meal: ${err}` });
     }
   } else {
     res.status(401).json({ error: "Not authorized" });
@@ -113,7 +108,6 @@ export const meal_create = asyncHandler(async (req, res, next) => {
 
 export const meal_get_by_id = asyncHandler(async (req, res, next) => {
   //verifies membership
-  console.log(req.params.mealId, req.decoded.member_id);
   const meal = await meal_model
     .meal_get_by_id(req.params.mealId, req.decoded.member_id)
     .catch((err) => {
@@ -126,11 +120,18 @@ export const meal_get_by_id = asyncHandler(async (req, res, next) => {
 export const meal_delete = asyncHandler(async (req, res, next) => {
   //checks if admin
   if (req.decoded.role && req.decoded.role == "admin") {
-    await meal_model.meal_delete(req.params.mealId).catch((err) => {
+    try {
+      const meal = await Meal.findByPk(req.params.mealId);
+      if (!meal) {
+        throw new Error(`Meal ${req.params.mealId} does not exist`);
+      } else {
+        await meal.destroy();
+      }
+      res.status(200).json();
+    } catch (err) {
       console.log(err);
       res.status(500).json({ error: err });
-    });
-    res.status(200).json();
+    }
   } else {
     res.status(401).json({ error: "Not authorized" });
   }
@@ -138,56 +139,43 @@ export const meal_delete = asyncHandler(async (req, res, next) => {
 
 export const meal_update = asyncHandler(async (req, res, next) => {
   // verifies membership
-  const meal = parse_meal_body(req);
-  console.log(meal);
-  if (meal.chosen_restaurant) {
-    const updatedMeal = await meal_model.meal_update_chosen_restaurant(
-      req.params.mealId,
-      meal.chosen_restaurant,
-    );
+
+  const meal = await Meal.findByPk(req.params.mealId);
+
+  if (req.decoded.role && req.decoded.role == "admin") {
+    const updatedMeal = await meal.update({ ...req.body });
     if (updatedMeal) {
       res.status(200).json(updatedMeal);
-    } else {
-      res.status(401).json({ error: "Could not add chosen restaurant" });
-    }
-  } else if (meal.liked !== undefined) {
-    const updatedMeal = await meal_model.meal_update_liked(
-      req.params.mealId,
-      meal.liked,
-    );
-    if (updatedMeal) {
-      res.status(200).json({ liked: updatedMeal.liked });
     } else {
       res.status(401).json({ error: "Could not update meal" });
     }
   } else {
-    if (req.decoded.role && req.decoded.role == "admin") {
-      const updatedMeal = await meal_model.meal_update_meal(
-        req.params.mealId,
-        meal,
-      );
-      if (updatedMeal) {
-        res.status(200).json(updatedMeal);
-      } else {
-        res.status(401).json({ error: "Could not update meal" });
-      }
-    } else {
-      res.status(401).json({ error: "Not authorized" });
-    }
+    res.status(401).json({ error: "Not authorized" });
+  }
+});
+
+export const meal_update_chosen_restaurant = asyncHandler(async (req, res) => {
+  const meal = await Meal.findByPk(req.params.mealId);
+  if (!meal) {
+    res.status(404).json({ error: "Meal does not exist" });
+  } else {
+    await meal.update({ ...req.body });
+
+    res.status(200).json();
   }
 });
 
 export const meal_check_round = asyncHandler(async (req, res, next) => {
-  let meal_round = await meal_model.meal_check_round(req.params.mealId);
-  if (meal_round == 0) {
-    let unseenResRows = await meal_model.meal_unseen_rows(
-      req.params.mealId,
-      req.decoded.member_id,
+  const meal = await Meal.findByPk(req.params.mealId);
+
+  if (meal.round == 0) {
+    let unseenResCount = await meal.getUnseenRestaurantCountByGuestId(
+      req.decoded.guest_id,
     );
-    if (unseenResRows.length == 0) {
-      meal_round = await meal_model.update_meal_round(req.params.mealId);
+    if (unseenResCount == 0) {
+      meal.round = await meal.update({ round: meal.round + 1 });
     }
-    res.status(200).json({ meal_round });
+    res.status(200).json({ meal_round: meal.round });
   } else {
     let unrankedMembers = await meal_model.get_remaining_unranked_members(
       req.params.mealId,
@@ -206,6 +194,7 @@ export const meal_check_round = asyncHandler(async (req, res, next) => {
 });
 
 export const meal_update_round = asyncHandler(async (req, res, next) => {
-  let updated = await meal_model.update_meal_round(req.params.mealId);
+  const meal = await Meal.findByPk(req.params.mealId);
+  await meal.update({ round: meal.round + 1 });
   res.status(200).json({});
 });

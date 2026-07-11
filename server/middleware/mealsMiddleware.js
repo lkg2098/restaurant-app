@@ -31,11 +31,10 @@ export const verify_meal_member = asyncHandler(async (req, res, next) => {
 export const parse_meal_body = (req) => {
   return {
     meal_name: req.body.meal_name,
-    meal_photo: req.body.meal_photo,
-    created_at: new Date().toISOString(),
     scheduled_at: req.body.scheduled_at,
     location_id: req.body.location_id,
-    location_coords: req.body.location_coords || [],
+    latitude: req.body.latitude,
+    longitude: req.body.longitude,
     radius: req.body.radius,
     budget: req.body.budget,
     chosen_restaurant: req.body.chosen_restaurant,

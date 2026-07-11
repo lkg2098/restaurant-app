@@ -15,6 +15,7 @@ const Guest = db.define("guest", {
     defaultValue: 0,
     validate: { min: 0, max: 2 },
   },
+  likedMeal: { type: DataTypes.BOOLEAN, allowNull: true },
 });
 
 export default Guest;
